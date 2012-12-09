@@ -6,20 +6,24 @@
 # CMakeLists.txt file from PhoenixCore, as
 # it has all of the dependencies of PhoenixCore.
 
-CMAKE_MINIMUM_REQUIRED( VERSION 2.6 )
+CMAKE_MINIMUM_REQUIRED( VERSION 2.8 )
 
 PROJECT( Fungus2D )
 
-SET(CMAKE_BUILD_TYPE  Debug)
+set(CMAKE_CXX_FLAGS_RELEASE "-Wall -std=c++0x -O3 -fno-strict-aliasing")
+set(CMAKE_CXX_FLAGS_DEBUG "-Wall -std=c++0x -g -fno-strict-aliasing")
+
+set(CMAKE_C_FLAGS_RELEASE "-Wall -ansi -O3 -fno-strict-aliasing")
+set(CMAKE_C_FLAGS_DEBUG "-Wall -ansi -g -fno-strict-aliasing")
 
 #############################
 # Disallow in-source builds #
 #############################
 
-IF( NOT "${Fungus2D_SOURCE_DIR}" STREQUAL "${Fungus2D_BINARY_DIR}" )
-	MESSAGE( FATAL_ERROR "\nFungus2D must be built in source.\n"
-			"Run cmake in the root directory of the project.\n" )
-ENDIF ( NOT "${Fungus2D_SOURCE_DIR}" STREQUAL "${Fungus2D_BINARY_DIR}" )
+IF( "${Fungus2D_SOURCE_DIR}" STREQUAL "${Fungus2D_BINARY_DIR}" )
+	MESSAGE( FATAL_ERROR "\nFungus2D must NOT be built in source.\n"
+			"Run cmake in a child directory of the project.\n" )
+ENDIF ( "${Fungus2D_SOURCE_DIR}" STREQUAL "${Fungus2D_BINARY_DIR}" )
 
 ######################
 # Check Dependencies #
@@ -140,6 +144,41 @@ ENDIF( PHOENIXCORE_FOUND )
 SET( INCLUDES ${INCLUDES} ${PHOENIXCORE_INCLUDE_DIR} )
 SET( LIBRARIES ${PHOENIXCORE_LIBRARY} ${LIBRARIES} )
 
+set( SEARCH_PATHS
+	${FUNGUSBOOSTER_PATH}
+	${FUNGUSBOOSTER_PATH}/lib
+	)
+
+FIND_PATH( FUNGUSBOOSTER_INCLUDE_DIR fungus_booster/fungus_booster.h PATHS ${SEARCH_PATHS} )
+
+if (DLL_FUNGUSUTIL)
+	if (CMAKE_BUILD_TYPE MATCHES Debug)
+		FIND_LIBRARY( FUNGUSBOOSTER_LIBRARY fungus_booster_d.dll PATHS ${SEARCH_PATHS} )
+	else(CMAKE_BUILD_TYPE MATCHES Debug)
+		FIND_LIBRARY( FUNGUSBOOSTER_LIBRARY fungus_booster.dll PATHS ${SEARCH_PATHS} )
+	endif(CMAKE_BUILD_TYPE MATCHES Debug)
+	if (FUNGUSBOOSTER_LIBRARY)
+		message("Copying fungus_booster runtime...")
+		file(COPY ${FUNGUSBOOSTER_PATH}/bin DESTINATION ${CMAKE_BINARY_DIR})
+	else (FUNGUSBOOSTER_LIBRARY)
+		message( FATAL_ERROR "not found!\n"
+							 "Try building without -DDLL_FUNGUSUTIL.\n" )
+	endif()
+else (DLL_FUNGUSUTIL)
+	if (CMAKE_BUILD_TYPE MATCHES Debug)
+		FIND_LIBRARY( FUNGUSBOOSTER_LIBRARY fungus_booster_d PATHS ${SEARCH_PATHS} )
+	else(CMAKE_BUILD_TYPE MATCHES Debug)
+		FIND_LIBRARY( FUNGUSBOOSTER_LIBRARY fungus_booster PATHS ${SEARCH_PATHS} )
+	endif(CMAKE_BUILD_TYPE MATCHES Debug)
+	if (NOT FUNGUSBOOSTER_LIBRARY)
+		message( FATAL_ERROR "Could not find fungus_booster library.\n"
+							 "Try building with -DDLL_FUNGUSUTIL.\n" )
+	endif()
+endif(DLL_FUNGUSUTIL)
+
+SET( LIBRARIES ${LIBRARIES} ${FUNGUSBOOSTER_LIBRARY} )
+SET( INCLUDES ${INCLUDES} ${FUNGUSBOOSTER_INCLUDE_DIR} )
+
 ##################
 # Platform Stuff #
 ##################
@@ -178,10 +217,10 @@ endif(UNIX )
 #################################
 # Change the output directories #
 #################################
-SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-SET(CMAKE_OUTPUT_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${Fungus2D_SOURCE_DIR}/lib)
+SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${Fungus2D_SOURCE_DIR}/lib)
+SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${Fungus2D_SOURCE_DIR}/bin)
+SET(CMAKE_OUTPUT_OUTPUT_DIRECTORY ${Fungus2D_SOURCE_DIR}/bin)
 
 #######################
 # Include Directories #
@@ -195,3 +234,4 @@ include_directories( ${Fungus2D_SOURCE_DIR}/source ${INCLUDES})
 
 subdirs( source )
 subdirs( tests )
+#subdirs( examples )

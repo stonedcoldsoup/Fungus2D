@@ -1,5 +1,5 @@
-cmake_minimum_required (VERSION 2.6)
-project ( PhoenixCore)
+cmake_minimum_required (VERSION 2.8)
+project ( Fungus2D)
 
 # Build Phoenix Core
 add_library( Fungus2D STATIC
@@ -7,3 +7,6 @@ add_library( Fungus2D STATIC
 	core.h
 	core.cpp
 	)
+
+set_target_properties(Fungus2D PROPERTIES LINK_FLAGS_RELEASE -s )
+set_target_properties(Fungus2D PROPERTIES DEBUG_POSTFIX "_d" )	
