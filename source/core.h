@@ -1,7 +1,7 @@
 #ifndef FUNGUS2D_CORE_H
 #define FUNGUS2D_CORE_H
 
-#include <Phoenix.h>
+#include "common.h"
 
 namespace Fungus2D
 {

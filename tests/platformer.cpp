@@ -3,8 +3,9 @@
 using namespace Fungus2D;
 using namespace phoenix;
 
-// for now, we will do a speed hacked version of the
 // underground platformer movement rules.
+// for now, we will do a speed hacked version of the
+// warping idea.
 
 struct tile
 {
@@ -53,6 +54,23 @@ struct map
 				m_tiles[i][j].e_type = tile::normal_type;
 			}
 		}
+		
+		for (int i = 10; i < 15; ++i)
+		{
+			for (int j = MAP_HEIGHT - 4; j < MAP_HEIGHT - 2; ++j)
+			{
+				m_tiles[i][j].e_type = tile::normal_type;
+			}
+		}
+		
+		// stairs
+		for (int i = 5; i < 10; ++i)
+		{
+			for (int j = MAP_HEIGHT - 2 - (5 - (i - 5)); j < MAP_HEIGHT - 2; ++j)
+			{
+				m_tiles[i][j].e_type = tile::dark_type;
+			}
+		}
 	}
 	
 	void draw_tile(RenderSystem &m_rs, int x, int y)
@@ -84,27 +102,60 @@ struct player
 	Vector2d m_velocity;
 	
 	tile::type_e e_world;
-	bool b_grounded;
+	bool b_grounded, b_jumped;
+	int y_ground;
 	
 	player():
 		m_actor(Vector2d(20, 20), Vector2d(TILE_WIDTH - 10, TILE_HEIGHT - 5)),
 		m_proj(Vector2d(0,0), Vector2d(TILE_WIDTH - 10, TILE_HEIGHT - 5)),
 		m_velocity(0,0),
 		e_world(tile::normal_type),
-		b_grounded(false)
+		b_grounded(false),
+		b_jumped(false)
 	{}
+	
+	void ground_interact(const map &m_map, int curx, int miny, int maxy, int height)
+	{
+		if (m_map.m_tiles[curx][miny].e_type != m_map.m_tiles[curx][maxy].e_type)
+		{
+			m_velocity.setY(0);
+			switch (m_map.m_tiles[curx][maxy].e_type)
+			{
+			case tile::dark_type:
+				//if (!b_jumped)
+				//{
+					m_actor.setY(maxy * TILE_WIDTH - height);
+					b_grounded = true;
+					y_ground = maxy;
+				//}
+				break;
+			case tile::normal_type:
+				m_actor.setY(maxy * TILE_WIDTH - height / 2);
+				break;
+			};
+		}
+	}
 	
 	void collide(const map &m_map)
 	{
 		int minx, maxx, miny, maxy;
 		minx = m_actor.getX() / TILE_WIDTH;
-		miny = m_actor.getY() / TILE_WIDTH;
+		miny = m_actor.getY() / TILE_WIDTH + m_actor.getHeight() * 0.5f / TILE_WIDTH;
 		
 		maxx = (m_actor.getX() + m_actor.getWidth())  / TILE_WIDTH;
 		maxy = (m_actor.getY() + m_actor.getHeight()) / TILE_HEIGHT;
 		
 		if (maxx >= MAP_WIDTH) maxx = MAP_WIDTH - 1;
 		if (maxy >= MAP_HEIGHT) maxy = MAP_HEIGHT - 1;
+		
+		if (miny != maxy)
+		{
+			ground_interact(m_map, minx, miny, maxy, m_actor.getHeight());
+			ground_interact(m_map, maxx, miny, maxy, m_actor.getHeight());
+		}
+		
+		minx = m_actor.getX() / TILE_WIDTH;
+		maxx = (m_actor.getX() + m_actor.getWidth())  / TILE_WIDTH;
 		
 		if (minx != maxx)
 		{
@@ -124,26 +175,15 @@ struct player
 			}
 		}
 		
-		minx = m_actor.getX() / TILE_WIDTH;
-		maxx = (m_actor.getX() + m_actor.getWidth())  / TILE_WIDTH;
-		
-		if (miny != maxy)
+		if (b_grounded)
 		{
-			int curx = minx;
-			if (m_map.m_tiles[curx][miny].e_type != m_map.m_tiles[curx][maxy].e_type)
-			{
-				m_velocity.setY(0);
-				switch (m_map.m_tiles[curx][maxy].e_type)
-				{
-				case tile::dark_type:
-					m_actor.setY(maxy * TILE_WIDTH - m_actor.getHeight());
-					b_grounded = true;
-					break;
-				case tile::normal_type:
-					m_actor.setY(maxy * TILE_WIDTH);
-					break;
-				};
-			}
+			int minx, maxx;
+			minx = m_actor.getX() / TILE_WIDTH;
+			maxx = (m_actor.getX() + m_actor.getWidth())  / TILE_WIDTH;
+			
+			if (!(m_map.m_tiles[minx][y_ground].e_type == tile::dark_type ||
+			      m_map.m_tiles[maxx][y_ground].e_type == tile::dark_type))
+				b_grounded = false;
 		}
 	}
 	
@@ -162,42 +202,43 @@ struct player
 		if (m_proj.getX() > maxxp) m_proj.setX(maxxp);
 		if (m_proj.getY() > maxyp) m_proj.setY(maxyp);
 	
-		// if grounded
-		if (b_grounded)
+		if (e_world == tile::normal_type)
 		{
-			m_velocity = Vector2d(0,0);
-			
-			// move
-			if (EventReceiver::Instance()->getKey(PHK_LEFT))
-				m_velocity.setX(-300);
-			else if (EventReceiver::Instance()->getKey(PHK_RIGHT))
-				m_velocity.setX(300);
-		
-			// integrate
-			m_actor.setPosition(m_actor.getPosition() + m_velocity*dt);
-			
-			collide(m_map);
-		
-			// floors
-			// TODO
-		
-			// jump
-			if (EventReceiver::Instance()->getKeyPressed(PHK_UP))
+			// if grounded
+			if (b_grounded)
 			{
-				m_velocity -= Vector2d(0, 300);
-				m_velocity.setX(m_velocity.getX() * 0.5);
-				b_grounded = false;
+//				m_velocity = Vector2d(0,0);
+				
+				// move
+				if (EventReceiver::Instance()->getKey(PHK_LEFT))
+					m_velocity.setX(-150);
+				else if (EventReceiver::Instance()->getKey(PHK_RIGHT))
+					m_velocity.setX(150);
+			
+				// integrate
+				m_actor.setPosition(m_actor.getPosition() + m_velocity*dt);
+				
+				collide(m_map);
+				
+				// jump
+				if (EventReceiver::Instance()->getKeyPressed(PHK_UP))
+				{
+					m_velocity -= Vector2d(0, 300);
+					m_velocity.setX(m_velocity.getX() * 0.5);
+					b_grounded = false;
+					b_jumped = true;
+				}
 			}
-		}
-		else // if in the air
-		{
-			// gravity
-			m_velocity += Vector2d(0,Y_ACCEL*dt*dt * 5000.0f);
-			
-			// integrate
-			m_actor.setPosition(m_actor.getPosition() + m_velocity*dt);
-			
-			collide(m_map);
+			else // if in the air
+			{
+				// gravity
+				m_velocity += Vector2d(0,Y_ACCEL*dt*dt * 5000.0f);
+				
+				// integrate
+				m_actor.setPosition(m_actor.getPosition() + m_velocity*dt);
+				
+				collide(m_map);
+			}
 		}
 	}
 	
@@ -219,8 +260,25 @@ struct player
 	}
 };
 
+template <typename T>
+struct testme
+{
+	typedef T type;
+};
+
 int main()
 {
+	try
+	{
+		throw Fungus2D::exception("hi!",
+								  Fungus2D::exception::info_type("a", 123),
+								  Fungus2D::exception::info_type("b", 321));
+	}
+	catch (Fungus2D::exception &e)
+	{
+		std::cout << e;
+	}
+
 	core::args m_args;
 	core m_core(m_args);
 	
