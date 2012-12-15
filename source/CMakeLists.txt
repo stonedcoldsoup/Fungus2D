@@ -6,6 +6,10 @@ add_library( Fungus2D STATIC
 	Fungus2D.h
 	core.h
 	core.cpp
+	prng.h
+	prng.c
+	fismath.h
+	fismath.cpp
 	)
 
 set_target_properties(Fungus2D PROPERTIES LINK_FLAGS_RELEASE -s )

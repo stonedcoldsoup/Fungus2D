@@ -20,10 +20,12 @@ set(CMAKE_C_FLAGS_DEBUG "-Wall -ansi -g -fno-strict-aliasing")
 # Disallow in-source builds #
 #############################
 
-IF( "${Fungus2D_SOURCE_DIR}" STREQUAL "${Fungus2D_BINARY_DIR}" )
-	MESSAGE( FATAL_ERROR "\nFungus2D must NOT be built in source.\n"
-			"Run cmake in a child directory of the project.\n" )
-ENDIF ( "${Fungus2D_SOURCE_DIR}" STREQUAL "${Fungus2D_BINARY_DIR}" )
+IF( NOT UNIX )
+    IF( "${Fungus2D_SOURCE_DIR}" STREQUAL "${Fungus2D_BINARY_DIR}" )
+	    MESSAGE( FATAL_ERROR "\nFungus2D must NOT be built in source.\n"
+			    "Run cmake in a child directory of the project.\n" )
+    ENDIF ( "${Fungus2D_SOURCE_DIR}" STREQUAL "${Fungus2D_BINARY_DIR}" )
+ENDIF ( NOT UNIX )
 
 ######################
 # Check Dependencies #

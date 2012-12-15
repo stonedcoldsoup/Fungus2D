@@ -40,5 +40,5 @@ namespace Fungus2D
 		  RenderSystem &core::get_rendersystem()       {return m_rendersystem;}
 	const RenderSystem &core::get_rendersystem() const {return m_rendersystem;}
 	
-	void core::run() {}
+	void core::run();
 }
